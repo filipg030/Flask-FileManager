@@ -1,0 +1,64 @@
+{% block doc -%}
+<!DOCTYPE html>
+<html{% block html_attribs %}{% endblock html_attribs %}>
+  {%- block html %}
+
+  <head>
+    {%- block head %}
+    <title>{% block title %}{{ title | default }}{% endblock title %}</title>
+
+    {%- block metas %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {%- endblock metas %}
+
+    {%- block styles %}
+    <!-- Bootstrap -->
+    <link href="{{ bootstrap_find_resource('css/bootstrap.css', cdn='bootstrap') }}" rel="stylesheet">
+    {%- endblock styles %}
+    {% block favicon %}
+    <link rel="icon" type="image/ico" href="/static/favicon.ico">
+    {% endblock favicon %}
+    {%- endblock head %}
+  </head>
+  <body{% block body_attribs %}{% endblock body_attribs %}>
+    {% block body -%}
+    {% block navbar %}
+    {%- endblock navbar %}
+    {% block content -%}
+    {%- endblock content %}
+
+    {% block scripts %}
+    <script src="{{ bootstrap_find_resource('popper.js', cdn='popper.js') }}"></script>
+    <script src="{{ bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap') }}"></script>
+
+    <script>
+      var modal = document.getElementsByClassName('modal')[0];
+      var input = document.querySelectorAll('[autofocus]')[0];
+
+      if (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+          input.focus();
+        })
+      }
+    </script>
+    <script>
+      var toastElList = [].slice.call(document.querySelectorAll('.toast'))
+      var toastList = toastElList.map(function (toastEl) {
+        return new bootstrap.Toast(toastEl)
+      });
+      toastList.forEach(toast => toast.show());
+    </script>
+    <script>
+      toastElList.map(function (toastEl) {
+        toastEl.addEventListener('hidden.bs.toast', function () {
+          toastEl.remove();
+        });
+      });
+    </script>
+    {%- endblock scripts %}
+    {%- endblock body %}
+    </body>
+    {%- endblock html %}
+
+    </html>
+    {% endblock doc -%}

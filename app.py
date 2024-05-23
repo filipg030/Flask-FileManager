@@ -10,6 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import os
 from datetime import datetime
+import shutil
 
 # konfiguracja aplikacji
 app = Flask(__name__)
@@ -39,20 +40,23 @@ class Users(db.Model, UserMixin):
 
 class Folders(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    folderName = db.Column(db.String(50), unique=True)
+    folderName = db.Column(db.String(50))
     type = db.Column(db.String(20))
     icon = db.Column(db.String(20))
     time = db.Column(db.String(20))
     parentFolder = db.Column(db.String(20))
+    fullName = db.Column(db.String(20), unique=True)
 
 class Files(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    fileName = db.Column(db.String(50), unique=True)
+    fileName = db.Column(db.String(50))
     type = db.Column(db.String(20))
     icon = db.Column(db.String(20))
     time = db.Column(db.String(20))
     size = db.Column(db.String(20))
     parentFolder = db.Column(db.String(20))
+    fullName = db.Column(db.String(20), unique=True)
+
 
 # konfiguracja Flask-Login
 loginManager = LoginManager()
@@ -277,7 +281,7 @@ def createFolder():
     if folderName != '':
         os.mkdir(os.path.join(app.config['UPLOAD_PATH'], folderName))
         time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        newFolder = Folders(folderName=folderName, type='folder', icon='bi bi-folder', time=time, parentFolder=app.config['UPLOAD_PATH'])
+        newFolder = Folders(folderName=folderName, type='folder', icon='bi bi-folder', time=time, parentFolder=app.config['UPLOAD_PATH'], fullName=os.path.join(app.config['UPLOAD_PATH'], folderName))
         db.session.add(newFolder)
         db.session.commit()
         flash('Folder utworzony poprawnie', 'success')
@@ -304,7 +308,7 @@ def deleteFolder():
         folder = Folders.query.filter_by(folderName=name).one()
         db.session.delete(folder)
         db.session.commit()
-        os.rmdir(app.config['UPLOAD_PATH'] + "/" + name)
+        shutil.rmtree(app.config['UPLOAD_PATH'] + "/" + name, ignore_errors=True)
         flash('Folder usunięto poprawnie', 'success')
         return redirect(url_for('dashboard'))
 
@@ -334,7 +338,7 @@ def uploadFile():
         uploadedFile.save(os.path.join(app.config['UPLOAD_PATH'], fileName))
         size = round(os.stat(os.path.join(app.config['UPLOAD_PATH'], fileName)).st_size / (1024 * 1024), 2)
         time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        newFile = Files(fileName=fileName, type=type, icon=icon, time=time, size=size, parentFolder=app.config['UPLOAD_PATH'])
+        newFile = Files(fileName=fileName, type=type, icon=icon, time=time, size=size, parentFolder=app.config['UPLOAD_PATH'], fullName=os.path.join(app.config['UPLOAD_PATH'],fileName))
         db.session.add(newFile)
         db.session.commit()
         flash('Plik przesłany poprawnie', 'success')
@@ -362,6 +366,10 @@ def deleteFile():
         name = request.args.get('name')
         file = Files.query.filter_by(fileName=name).one()
         db.session.delete(file)
+        for file in Files.query.filter_by(parentFolder=app.config['UPLOAD_PATH'] + "/" + name):
+            db.session.delete(file)
+        for folder in Folders.query.filter_by(parentFolder=app.config['UPLOAD_PATH'] + "/" + name):
+            db.session.delete(folder)
         db.session.commit()
         os.remove(app.config['UPLOAD_PATH'] + "/" + name)
         flash('Plik usunięto poprawnie', 'success')
